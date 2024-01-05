@@ -11,8 +11,7 @@
 #ifndef __GT911_H__
 #define __GT911_H__
 
-#include <rtthread.h>
-#include <rtdevice.h>
+#include <touch.h>
 
 #define GT911_ADDR_LEN          2
 #define GT911_REGITER_LEN       2
@@ -36,5 +35,7 @@
 #define GT911_POINT5_REG        0x816F
 
 #define GT911_CHECK_SUM         0x80FF
+
+//int rt_hw_gt911_init(const char *name, struct rt_touch_config *cfg);
 
 #endif /* gt911.h */

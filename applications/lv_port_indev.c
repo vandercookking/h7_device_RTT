@@ -14,6 +14,9 @@
 #include "touch.h"
 #include <drv_log.h>
 #include <board.h>
+#include "rtdevice.h"
+#include "gt911.h"
+
 /*********************
  *      DEFINES
  *********************/
@@ -26,15 +29,10 @@
  *  STATIC PROTOTYPES
  **********************/
 
-static void touchpad_init(void);
+//static void touchpad_init(void);
 static void touchpad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
 static bool touchpad_is_pressed(void);
 static void touchpad_get_xy(lv_coord_t * x, lv_coord_t * y);
-
-static void button_init(void);
-static void button_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
-static int8_t button_get_pressed_id(void);
-static bool button_is_pressed(uint8_t id);
 
 /**********************
  *  STATIC VARIABLES
@@ -72,7 +70,7 @@ void lv_port_indev_init(void)
      * -----------------*/
 
     /*Initialize your touchpad if you have*/
-    touchpad_init();
+//    touchpad_init();
 
     /*Register a touchpad input device*/
     lv_indev_drv_init(&indev_drv);
@@ -84,26 +82,6 @@ void lv_port_indev_init(void)
      *add objects to the group with `lv_group_add_obj(group, obj)`
      *and assign this input device to group to navigate in it:
      *`lv_indev_set_group(indev_keypad, group);`*/
-
-    /*------------------
-     * Button
-     * -----------------*/
-
-    /*Initialize your button if you have*/
-    button_init();
-
-    /*Register a button input device*/
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_BUTTON;
-    indev_drv.read_cb = button_read;
-    indev_button = lv_indev_drv_register(&indev_drv);
-
-    /*Assign buttons to points on the screen*/
-    static const lv_point_t btn_points[2] = {
-        {10, 10},   /*Button 0 -> x:10; y:10*/
-        {40, 100},  /*Button 1 -> x:40; y:100*/
-    };
-    lv_indev_set_button_points(indev_button, btn_points);
 }
 
 /**********************
@@ -113,70 +91,28 @@ void lv_port_indev_init(void)
 /*------------------
  * Touchpad
  * -----------------*/
-
-int rt_hw_gt911_init(const char *name, struct rt_touch_config *cfg)
+rt_touch_t touch_dev;
+static int lv_hw_touch_init(void)
 {
-    struct rt_touch_device *touch_device = RT_NULL;
+    struct rt_touch_config cfg;
 
-    touch_device = (struct rt_touch_device *)rt_malloc(sizeof(struct rt_touch_device));
-    if(touch_device == RT_NULL)
+    cfg.dev_name = "i2c1";/* 使用的I2C设备名 */
+
+    rt_hw_gt911_init("touch", &cfg);
+
+    touch_dev = rt_device_find("touch");
+    if (rt_device_open(touch_dev, RT_DEVICE_FLAG_RDONLY) != RT_EOK)
     {
-        LOG_E("touch device malloc fail");
+        LOG_E("Can't open touch device:%s", "touch");
         return -RT_ERROR;
     }
-    rt_memset((void *)touch_device, 0, sizeof(struct rt_touch_device));
-
-    /* hw init*/
-    rt_pin_mode(*(rt_uint8_t *)cfg->user_data, PIN_MODE_OUTPUT);
-    rt_pin_mode(cfg->irq_pin.pin, PIN_MODE_OUTPUT);
-    rt_pin_write(cfg->irq_pin.pin, PIN_LOW);
-    rt_pin_write(*(rt_uint8_t *)cfg->user_data, PIN_LOW);
-    rt_thread_mdelay(10);
-
-#ifdef PKG_GT911_USING_LOW_ADDR
-    rt_pin_write(cfg->irq_pin.pin, PIN_HIGH);
-    rt_thread_mdelay(10);
-    rt_pin_write(*(rt_uint8_t *)cfg->user_data, PIN_HIGH);
-    rt_thread_mdelay(10);
-    rt_pin_write(cfg->irq_pin.pin, PIN_MODE_INPUT);
-    gt911_client.client_addr = GT911_ADDRESS_LOW;
-#else
-    rt_pin_write(*(rt_uint8_t *)cfg->user_data, PIN_HIGH);
-    rt_thread_mdelay(10);
-    rt_pin_write(cfg->irq_pin.pin, PIN_MODE_INPUT);
-    gt911_client.client_addr = GT911_ADDRESS_HIGH;
-#endif
-
-    gt911_client.bus = (struct rt_i2c_bus_device *)rt_device_find(cfg->dev_name);
-
-    if(gt911_client.bus == RT_NULL)
-    {
-        LOG_E("Can't find %s device", cfg->dev_name);
-        return -RT_ERROR;
-    }
-
-    if(rt_device_open((rt_device_t)gt911_client.bus, RT_DEVICE_FLAG_RDWR) != RT_EOK)
-    {
-        LOG_E("open %s device failed", cfg->dev_name);
-        return -RT_ERROR;
-    }
-
-    gt911_soft_reset(&gt911_client);
-
-    /* register touch device */
-    touch_device->info.type = RT_TOUCH_TYPE_CAPACITANCE;
-    touch_device->info.vendor = RT_TOUCH_VENDOR_GT;
-    rt_memcpy(&touch_device->config, cfg, sizeof(struct rt_touch_config));
-    touch_device->ops = &gt911_touch_ops;
-
-    rt_hw_touch_register(touch_device, name, RT_DEVICE_FLAG_INT_RX, RT_NULL);
-
-    LOG_I("touch device gt911 init success");
 
     return RT_EOK;
 }
 
+INIT_COMPONENT_EXPORT(lv_hw_touch_init);
 
+#if 0
 int rt_hw_gt911_port(void)
 {
     struct rt_touch_config cfg;
@@ -198,6 +134,7 @@ static void touchpad_init(void)
     /*Your code comes here*/
     rt_hw_gt911_port();
 }
+#endif
 
 /*Will be called by the library to read the touchpad*/
 static void touchpad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
@@ -235,64 +172,6 @@ static void touchpad_get_xy(lv_coord_t * x, lv_coord_t * y)
     (*x) = 0;
     (*y) = 0;
 }
-
-/*------------------
- * Button
- * -----------------*/
-
-/*Initialize your buttons*/
-static void button_init(void)
-{
-    /*Your code comes here*/
-}
-
-/*Will be called by the library to read the button*/
-static void button_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
-{
-
-    static uint8_t last_btn = 0;
-
-    /*Get the pressed button's ID*/
-    int8_t btn_act = button_get_pressed_id();
-
-    if(btn_act >= 0) {
-        data->state = LV_INDEV_STATE_PR;
-        last_btn = btn_act;
-    }
-    else {
-        data->state = LV_INDEV_STATE_REL;
-    }
-
-    /*Save the last pressed button's ID*/
-    data->btn_id = last_btn;
-}
-
-/*Get ID  (0, 1, 2 ..) of the pressed button*/
-static int8_t button_get_pressed_id(void)
-{
-    uint8_t i;
-
-    /*Check to buttons see which is being pressed (assume there are 2 buttons)*/
-    for(i = 0; i < 2; i++) {
-        /*Return the pressed button's ID*/
-        if(button_is_pressed(i)) {
-            return i;
-        }
-    }
-
-    /*No button pressed*/
-    return -1;
-}
-
-/*Test if `id` button is pressed or not*/
-static bool button_is_pressed(uint8_t id)
-{
-
-    /*Your code comes here*/
-
-    return false;
-}
-
 
 
 //INIT_ENV_EXPORT(rt_hw_gt911_port);

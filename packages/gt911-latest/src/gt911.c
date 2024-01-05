@@ -13,6 +13,7 @@
 #include <rtdbg.h>
 
 #include "gt911.h"
+#include "i2c.h"
 
 static struct rt_i2c_client gt911_client;
 
