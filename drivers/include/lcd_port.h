@@ -85,6 +85,8 @@ typedef struct time_sequence {
   int vfp;
 } LCD_TIME_SEQUENCE;
 
+extern int rt_hw_lcd_init(void);
+
 extern void fb_fill_rect(uint32_t x_pos, uint32_t y_pos, uint32_t width,
         uint32_t height, uint32_t color);
 

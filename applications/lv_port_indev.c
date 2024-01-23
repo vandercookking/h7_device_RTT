@@ -31,8 +31,8 @@
 
 //static void touchpad_init(void);
 static void touchpad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data);
-static bool touchpad_is_pressed(void);
-static void touchpad_get_xy(lv_coord_t * x, lv_coord_t * y);
+//static bool touchpad_is_pressed(void);
+//static void touchpad_get_xy(lv_coord_t * x, lv_coord_t * y);
 
 /**********************
  *  STATIC VARIABLES
@@ -139,6 +139,7 @@ static void touchpad_init(void)
 /*Will be called by the library to read the touchpad*/
 static void touchpad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 {
+#if 0
     static lv_coord_t last_x = 0;
     static lv_coord_t last_y = 0;
 
@@ -154,8 +155,30 @@ static void touchpad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
     /*Set the last pressed coordinates*/
     data->point.x = last_x;
     data->point.y = last_y;
+#endif
+    struct rt_touch_data *read_data;
+    /* 可以将内存分配这个步骤改为全局变量，以提高读取效率 */
+    read_data = (struct rt_touch_data *)rt_calloc(1, sizeof(struct rt_touch_data));
+    rt_device_read(touch_dev, 0, read_data, 1);
+    /* 如果没有触摸事件，直接返回 */
+     if (read_data->event == RT_TOUCH_EVENT_NONE)
+         return;
+     /* 这里需要注意的是：触摸驱动的原点可能和LCD的原点不一致，所以需要我们进行一些处理 */
+    //#ifdef BSP_USING_TOUCH_FT6X36
+    data->point.x = read_data->y_coordinate;
+    data->point.y = 800 - read_data->x_coordinate;
+    //#endif /* BSP_USING_TOUCH_FT6X36 */
+
+    if (read_data->event == RT_TOUCH_EVENT_DOWN)
+        data->state = LV_INDEV_STATE_PR;
+    if (read_data->event == RT_TOUCH_EVENT_MOVE)
+        data->state = LV_INDEV_STATE_PR;
+    if (read_data->event == RT_TOUCH_EVENT_UP)
+        data->state = LV_INDEV_STATE_REL;
 }
 
+
+#if 0
 /*Return true is the touchpad is pressed*/
 static bool touchpad_is_pressed(void)
 {
@@ -174,8 +197,8 @@ static void touchpad_get_xy(lv_coord_t * x, lv_coord_t * y)
 }
 
 
-//INIT_ENV_EXPORT(rt_hw_gt911_port);
-
+INIT_ENV_EXPORT(rt_hw_gt911_port);
+#endif
 
 #else /*Enable this file at the top*/
 
