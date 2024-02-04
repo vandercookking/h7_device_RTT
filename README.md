@@ -16,3 +16,19 @@
 另外memheap.c隐藏，并且未被添加到工程中。需要在RT Studio软件工程中配置“过滤器和定制-->RTT Excluded Resource”取消勾选，并且在斜杠文件上右键选择"资源配置-->添加构建"，即可编译成功。
 
 ![avatar](/png/memheap.png)
+
+## 添加LVGL并在屏幕上运行calendar demo
+
+1.添加mipi lcd相关配置
+
+2.添加lvgl packge
+
+3.添加i2c相关驱动配置
+
+3.适配GT911触摸芯片数据处理相关
+
+![avatar](png/lvgl_reset.png)
+
+![avatar](/png/list_thread.png)
+
+![avatar](/png/list_device.png)
