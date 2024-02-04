@@ -15,7 +15,6 @@
 #define LCD_BACKLIGHT_USING_PWM
 #define LCD_PWM_DEV_NAME    "pwm1"
 #define LCD_PWM_DEV_CHANNEL 1
-/* 3.1 inch screen, 800 * 480 */
 
 /* LCD reset pin */
 #define LCD_RESET_PIN GPIO_PIN_3
@@ -25,11 +24,9 @@
 #define LCD_TE_PIN GPIO_PIN_2
 #define LCD_TE_GPIO_PORT GPIOJ
 
-
-
-/* armfly 5 inch screen, 800 * 480 */
+/* 3.1 inch screen, 800 * 480 */
 #define LCD_WIDTH           480
-#define LCD_HEIGHT          1600
+#define LCD_HEIGHT          800
 #define LCD_BITS_PER_PIXEL  16
 #define LCD_BUF_SIZE        (LCD_WIDTH * LCD_HEIGHT * LCD_BITS_PER_PIXEL / 8)
 #define LCD_PIXEL_FORMAT    RTGRAPHIC_PIXEL_FORMAT_RGB565
@@ -64,7 +61,7 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-
+#define LCD_BUFFER_SIZE     LCD_WIDTH * LCD_HEIGHT * (lcd.info.bits_per_pixel / 8)
 
 typedef struct {
   uint32_t xres;
@@ -97,6 +94,7 @@ extern void fb_draw_hline(uint32_t x_pos, uint32_t y_pos, uint32_t len,
                    uint32_t color);
 extern void fb_draw_vline(uint32_t x_pos, uint32_t y_pos, uint32_t len,
                    uint32_t color);
+extern void display_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
 
 extern void stm32_mipi_display_on(void);
 extern void stm32_mipi_display_off(void);

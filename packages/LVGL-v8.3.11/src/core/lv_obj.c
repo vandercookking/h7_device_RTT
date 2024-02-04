@@ -103,7 +103,7 @@ void lv_init(void)
         return;
     }
 
-    LV_LOG_INFO("begin");
+    LV_LOG("begin");
 
     /*Initialize the misc modules*/
     lv_mem_init();
@@ -189,7 +189,7 @@ void lv_init(void)
 
     lv_initialized = true;
 
-    LV_LOG_TRACE("finished");
+    LV_LOG("finished");
 }
 
 #if LV_ENABLE_GC || !LV_MEM_CUSTOM

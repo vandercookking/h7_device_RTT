@@ -11,7 +11,7 @@
 #ifndef __GT911_H__
 #define __GT911_H__
 
-#include <touch.h>
+#include "drivers/touch.h"
 
 #define GT911_ADDR_LEN          2
 #define GT911_REGITER_LEN       2
@@ -36,6 +36,11 @@
 
 #define GT911_CHECK_SUM         0x80FF
 
-//int rt_hw_gt911_init(const char *name, struct rt_touch_config *cfg);
+#define GT911_RST_PIN           GET_PIN(C, 1)   //PC1
+#define GT911_IRQ_PIN           GET_PIN(A, 2)   //PA2
+
+struct rt_touch_config;
+
+extern int rt_hw_gt911_init(const char *name, struct rt_touch_config *cfg);
 
 #endif /* gt911.h */

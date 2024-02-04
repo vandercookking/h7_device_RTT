@@ -47,6 +47,17 @@ struct stm32_lcd
 };
 struct stm32_lcd lcd;
 
+void fb_write_pixel(uint32_t x_pos, uint32_t y_pos, uint32_t color) {
+  if (lcd_params.pixel_format == LTDC_PIXEL_FORMAT_ARGB8888) {
+    *(uint32_t *)(lcd_params.fb_base +
+                  (lcd_params.bbp * (lcd_params.xres * y_pos + x_pos))) = color;
+
+  } else {
+    /*LTDC_PIXEL_FORMAT_RGB565 */
+    *(uint16_t *)(lcd_params.fb_base +
+                  (lcd_params.bbp * (lcd_params.xres * y_pos + x_pos))) = color;
+  }
+}
 
 static void fb_fill_buffer(uint32_t *dest, uint32_t x_size, uint32_t y_size,
                            uint32_t offset, uint32_t color) {
@@ -243,6 +254,17 @@ HAL_StatusTypeDef hltdc_init(LTDC_HandleTypeDef *hltdc, uint32_t Width,
   return HAL_LTDC_Init(hltdc);
 }
 
+static struct {
+  uint16_t x, y;
+} BUFFER_OFFSET;
+
+void display_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
+  x0 += BUFFER_OFFSET.x;
+  x1 += BUFFER_OFFSET.x;
+  y0 += BUFFER_OFFSET.y;
+  y1 += BUFFER_OFFSET.y;
+}
+
 void st7701_dsi_write(uint16_t reg, uint8_t *seq, uint16_t len) {
   if (len <= 1) {
     HAL_DSI_ShortWrite(&hdsi, 0, DSI_DCS_SHORT_PKT_WRITE_P1, reg,
@@ -257,7 +279,6 @@ void st7701_dsi_write(uint16_t reg, uint8_t *seq, uint16_t len) {
     uint8_t d[] = {seq};                     \
     st7701_dsi_write(reg, d, ARRAY_SIZE(d)); \
   }
-
 
 
 void st7701_init_sequence(void) {
@@ -390,7 +411,7 @@ void ltdc_layer_init(uint16_t index, uint32_t framebuffer)
     layer_cfg.WindowX1        = LCD_WIDTH;
     layer_cfg.WindowY0        = 0;
     layer_cfg.WindowY1        = LCD_HEIGHT;
-    layer_cfg.PixelFormat     = DSI_RGB565;
+    layer_cfg.PixelFormat     = LTDC_PIXEL_FORMAT_RGB565;
     layer_cfg.BlendingFactor1 = LTDC_BLENDING_FACTOR1_PAxCA;
     layer_cfg.BlendingFactor2 = LTDC_BLENDING_FACTOR2_PAxCA;
     layer_cfg.Alpha           = 255;
@@ -490,10 +511,11 @@ rt_err_t ltdc_init(uint32_t framebuffer)
 
     HAL_DSI_Start(&(hdsi));
 
-    /* Enable the DSI BTW for read operations */
     (void)HAL_DSI_ConfigFlowControl(&hdsi, DSI_FLOW_CONTROL_BTA);
 
     st7701_init_sequence();
+
+    fb_fill_rect(0, 0, 480 , 800, 0x0000);
 
     rt_kprintf("lcd init ok ...\n");
 
@@ -516,10 +538,12 @@ static rt_err_t stm32_lcd_init(rt_device_t device)
     lcd.info.pixel_format   = RTGRAPHIC_PIXEL_FORMAT_RGB565;
     lcd.info.bits_per_pixel = 16;
 //    lcd.info.framebuffer    = (void *)rt_malloc_align(LCD_WIDTH * LCD_HEIGHT * (lcd.info.bits_per_pixel / 8), 32);
-    lcd.info.framebuffer  =  (rt_uint8_t *)rt_memheap_alloc(&system_heap, LCD_WIDTH * LCD_HEIGHT * (lcd.info.bits_per_pixel / 8));
+    lcd.info.framebuffer  =  (rt_uint8_t *)rt_memheap_alloc(&system_heap, LCD_BUFFER_SIZE);
 
-    memset(lcd.info.framebuffer, 0xa5, LCD_WIDTH * LCD_HEIGHT * (lcd.info.bits_per_pixel / 8));
+    memset(lcd.info.framebuffer, 0xa5, LCD_BUFFER_SIZE);
+
     ltdc_init((uint32_t)lcd.info.framebuffer);
+
 //    ltdc_layer_init(0, (uint32_t)lcd.info.framebuffer);
 
     return RT_EOK;
@@ -578,20 +602,17 @@ int rt_hw_lcd_init(void)
 
     return ret;
 }
-INIT_DEVICE_EXPORT(rt_hw_lcd_init);
+INIT_COMPONENT_EXPORT(rt_hw_lcd_init);
 
 
 rt_weak void stm32_mipi_display_on(void)
 {
-    rt_kprintf("please Implementation function %s\n", __func__);
+    st7701_dsi(0x29,0x00);
 }
 
 rt_weak void stm32_mipi_display_off(void)
 {
-    rt_kprintf("please Implementation function %s\n", __func__);
-
-    extern void display_clear(void);
-    display_clear();
+    st7701_dsi(0x28,0x00);
 }
 
 #ifdef DRV_DEBUG
@@ -610,9 +631,20 @@ int lcd_test(void)
 
     //end test lcd
 
-    extern void display_clear(void);
-    display_clear();
-
+    //clear lcd as black color
+    fb_fill_rect(0, 0, 480, 800, 0x0000);
+#if 0
+    fb_fill_rect(100,100,280,100,0xD3A4FF);
+    fb_fill_rect(100,200,280,100,0xDCB5FF);
+    fb_fill_rect(100,300,280,100,0xF1E1FF);
+    fb_fill_rect(100,400,280,100,0xE6CAFF);
+    fb_fill_rect(100,500,280,100,0xF1E1FF);
+#endif
+    fb_fill_rect(100,100,280,600,0xD3A4FF);
+//    rt_thread_mdelay(1000);
+//    stm32_mipi_display_off();
+//    rt_thread_mdelay(1000);
+//    stm32_mipi_display_on();
 //    struct drv_lcd_device *lcd;
 //    lcd = (struct drv_lcd_device *)rt_device_find("lcd");
 

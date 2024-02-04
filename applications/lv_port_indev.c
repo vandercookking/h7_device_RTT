@@ -11,7 +11,7 @@
  *********************/
 #include "lv_port_indev.h"
 #include "lvgl.h"
-#include "touch.h"
+#include "drivers/touch.h"
 #include <drv_log.h>
 #include <board.h>
 #include "rtdevice.h"
@@ -91,7 +91,23 @@ void lv_port_indev_init(void)
 /*------------------
  * Touchpad
  * -----------------*/
-rt_touch_t touch_dev;
+//int rt_hw_gt911_port(void)
+//{
+//    struct rt_touch_config cfg;
+//    rt_uint8_t rst_pin;
+//
+//    rst_pin = GT911_RST_PIN;
+//    cfg.dev_name = "i2c1";
+//    cfg.irq_pin.pin = GT911_IRQ_PIN;
+//    cfg.irq_pin.mode = PIN_MODE_INPUT_PULLDOWN;
+//    cfg.user_data = &rst_pin;
+//
+//    rt_hw_gt911_init("gt911", &cfg);
+//
+//    return 0;
+//}
+
+rt_device_t  touch_dev;
 static int lv_hw_touch_init(void)
 {
     struct rt_touch_config cfg;
@@ -99,6 +115,8 @@ static int lv_hw_touch_init(void)
     cfg.dev_name = "i2c1";/* 使用的I2C设备名 */
 
     rt_hw_gt911_init("touch", &cfg);
+
+//    rt_hw_gt911_port();
 
     touch_dev = rt_device_find("touch");
     if (rt_device_open(touch_dev, RT_DEVICE_FLAG_RDONLY) != RT_EOK)
@@ -112,22 +130,9 @@ static int lv_hw_touch_init(void)
 
 INIT_COMPONENT_EXPORT(lv_hw_touch_init);
 
+
+
 #if 0
-int rt_hw_gt911_port(void)
-{
-    struct rt_touch_config cfg;
-    rt_uint8_t rst_pin;
-
-    rst_pin = GT911_RST_PIN;
-    cfg.dev_name = "i2c2";
-    cfg.irq_pin.pin = GT911_IRQ_PIN;
-    cfg.irq_pin.mode = PIN_MODE_INPUT_PULLDOWN;
-    cfg.user_data = &rst_pin;
-
-    rt_hw_gt911_init("gt911", &cfg);
-
-    return 0;
-}
 /*Initialize your touchpad*/
 static void touchpad_init(void)
 {
@@ -139,35 +144,36 @@ static void touchpad_init(void)
 /*Will be called by the library to read the touchpad*/
 static void touchpad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 {
-#if 0
-    static lv_coord_t last_x = 0;
-    static lv_coord_t last_y = 0;
+//    static lv_coord_t last_x = 0;
+//    static lv_coord_t last_y = 0;
+//
+//    /*Save the pressed coordinates and the state*/
+//    if(touchpad_is_pressed()) {
+//        touchpad_get_xy(&last_x, &last_y);
+//        data->state = LV_INDEV_STATE_PR;
+//    }
+//    else {
+//        data->state = LV_INDEV_STATE_REL;
+//    }
+//
+//    /*Set the last pressed coordinates*/
+//    data->point.x = last_x;
+//    data->point.y = last_y;
 
-    /*Save the pressed coordinates and the state*/
-    if(touchpad_is_pressed()) {
-        touchpad_get_xy(&last_x, &last_y);
-        data->state = LV_INDEV_STATE_PR;
-    }
-    else {
-        data->state = LV_INDEV_STATE_REL;
-    }
-
-    /*Set the last pressed coordinates*/
-    data->point.x = last_x;
-    data->point.y = last_y;
-#endif
     struct rt_touch_data *read_data;
     /* 可以将内存分配这个步骤改为全局变量，以提高读取效率 */
     read_data = (struct rt_touch_data *)rt_calloc(1, sizeof(struct rt_touch_data));
+
     rt_device_read(touch_dev, 0, read_data, 1);
-    /* 如果没有触摸事件，直接返回 */
-     if (read_data->event == RT_TOUCH_EVENT_NONE)
-         return;
-     /* 这里需要注意的是：触摸驱动的原点可能和LCD的原点不一致，所以需要我们进行一些处理 */
-    //#ifdef BSP_USING_TOUCH_FT6X36
-    data->point.x = read_data->y_coordinate;
-    data->point.y = 800 - read_data->x_coordinate;
-    //#endif /* BSP_USING_TOUCH_FT6X36 */
+
+    /* 没有触摸事件直接返回*/
+    if (read_data->event == RT_TOUCH_EVENT_NONE)
+        return;
+
+    /* 这里需要注意的是：触摸驱动的原点可能和LCD的原点不一致，所以需要我们进行一些处理 */
+
+    data->point.x = read_data->x_coordinate;
+    data->point.y = read_data->y_coordinate;
 
     if (read_data->event == RT_TOUCH_EVENT_DOWN)
         data->state = LV_INDEV_STATE_PR;
@@ -176,9 +182,8 @@ static void touchpad_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
     if (read_data->event == RT_TOUCH_EVENT_UP)
         data->state = LV_INDEV_STATE_REL;
 }
-
-
 #if 0
+
 /*Return true is the touchpad is pressed*/
 static bool touchpad_is_pressed(void)
 {
@@ -195,10 +200,10 @@ static void touchpad_get_xy(lv_coord_t * x, lv_coord_t * y)
     (*x) = 0;
     (*y) = 0;
 }
-
-
-INIT_ENV_EXPORT(rt_hw_gt911_port);
 #endif
+
+//INIT_ENV_EXPORT(rt_hw_gt911_port);
+
 
 #else /*Enable this file at the top*/
 

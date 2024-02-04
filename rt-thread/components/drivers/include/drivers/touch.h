@@ -75,6 +75,7 @@ struct rt_touch_config
     void                        *user_data;
 };
 
+
 typedef struct rt_touch_device *rt_touch_t;
 struct rt_touch_device
 {

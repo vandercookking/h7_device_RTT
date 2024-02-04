@@ -13,6 +13,8 @@
 
 #include <stm32h7xx.h>
 #include "stm32h7xx_hal_tim.h"
+#include "core_cm7.h"
+
 #include <drv_common.h>
 
 #ifdef __cplusplus

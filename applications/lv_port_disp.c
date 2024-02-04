@@ -12,6 +12,7 @@
 #include "lv_port_disp.h"
 #include <stdbool.h>
 #include "display.h"
+#include <rtdbg.h>
 
 /*********************
  *      DEFINES
@@ -43,6 +44,7 @@ static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_colo
  *  STATIC VARIABLES
  **********************/
 
+
 /**********************
  *      MACROS
  **********************/
@@ -50,14 +52,6 @@ static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_colo
 /**********************
  *   GLOBAL FUNCTIONS
  **********************/
-
-/*Initialize your display and the required peripherals.*/
-static void disp_init(void)
-{
-    /*You code here*/
-    rt_hw_lcd_init();
-}
-
 
 void lv_port_disp_init(void)
 {
@@ -90,10 +84,10 @@ void lv_port_disp_init(void)
      *      This way LVGL will always provide the whole rendered screen in `flush_cb`
      *      and you only need to change the frame buffer's address.
      */
-
-    /* Example for 1) */
     static lv_disp_draw_buf_t draw_buf_dsc_1;
-    static lv_color_t buf_1[MY_DISP_HOR_RES * 10];                          /*A buffer for 10 rows*/
+    static lv_color_t buf_1[MY_DISP_HOR_RES * 10];
+    /* Example for 1) */
+                        /*A buffer for 10 rows*/
     lv_disp_draw_buf_init(&draw_buf_dsc_1, buf_1, NULL, MY_DISP_HOR_RES * 10);   /*Initialize the display buffer*/
 
 //    /* Example for 2) */
@@ -139,11 +133,17 @@ void lv_port_disp_init(void)
     /*Finally register the driver*/
     lv_disp_drv_register(&disp_drv);
 }
-INIT_COMPONENT_EXPORT(lv_port_disp_init);
+
 /**********************
  *   STATIC FUNCTIONS
  **********************/
 
+/*Initialize your display and the required peripherals.*/
+static void disp_init(void)
+{
+    /*You code here*/
+//    fb_fill_rect(0, 0, 480 , 800, 0x0000);
+}
 
 volatile bool disp_flush_enabled = true;
 
@@ -166,28 +166,17 @@ void disp_disable_update(void)
  *'lv_disp_flush_ready()' has to be called when finished.*/
 static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p)
 {
+    int32_t x;
+    int32_t y;
     if(disp_flush_enabled) {
-        /*The most simple case (but also the slowest) to put all pixels to the screen one-by-one*/
-
-        int32_t x;
-        int32_t y;
         for(y = area->y1; y <= area->y2; y++) {
             for(x = area->x1; x <= area->x2; x++) {
                 /*Put a pixel to the display. For example:*/
-                /*put_px(x, y, *color_p)*/
-                /* 下面自己的代码 */
-                uint16_t color=0;
-                color |= (uint16_t)(3u * LV_COLOR_GET_R32(*color_p) + LV_COLOR_GET_B32(*color_p) + 4u * LV_COLOR_GET_G32(*color_p));
-//                LCD_SetPointPixel(x, y, color);
-                display_bar(area->x1,area->y1,area->x2,area->y2,color);
-                /* 上面是自己的代码 */
+                display_drw_point(x, y, *((uint16_t *)color_p));
                 color_p++;
             }
         }
     }
-
-
-
     /*IMPORTANT!!!
      *Inform the graphics library that you are ready with the flushing*/
     lv_disp_flush_ready(disp_drv);

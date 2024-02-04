@@ -10,6 +10,7 @@
 
 #include "drv_common.h"
 #include "board.h"
+#include "lv_hal_tick.h"
 
 #ifdef RT_USING_FINSH
 #include <finsh.h>
@@ -153,15 +154,11 @@ void hw_board_init(char *clock_src, int32_t clock_src_freq, int32_t clock_target
 
     PVD_Init();
 
-#ifdef SCB_EnableICache
     /* Enable I-Cache---------------------------------------------------------*/
     SCB_EnableICache();
-#endif
 
-#ifdef SCB_EnableDCache
     /* Enable D-Cache---------------------------------------------------------*/
     SCB_EnableDCache();
-#endif
 
     /* System clock initialization */
 //    SystemClock_Config();
